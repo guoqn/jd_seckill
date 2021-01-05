@@ -10,6 +10,10 @@ import os
 import pickle
 import asyncio
 
+from pyzbar.pyzbar import decode
+from PIL import Image
+import qrcode
+
 from lxml import etree
 from concurrent.futures import ProcessPoolExecutor
 
@@ -17,6 +21,7 @@ from .jd_logger import logger
 from .timer import Timer
 from .config import global_config
 from .exception import SKException
+
 from .util import (
     parse_json,
     send_wechat,
@@ -184,8 +189,9 @@ class QrLogin:
 
         save_image(resp, self.qrcode_img_file)
         logger.info('二维码获取成功，请打开京东APP扫描')
-
-        open_image(add_bg_for_qr(self.qrcode_img_file))
+        # 打印二维码到控制台
+        self._show_qr_code_cmd()
+        # open_image(add_bg_for_qr(self.qrcode_img_file))
         if global_config.getRaw('messenger', 'email_enable') == 'true':
             email.send('二维码获取成功，请打开京东APP扫描', "<img src='cid:qr_code.png'>", [email.mail_user], 'qr_code.png')
         return True
@@ -273,6 +279,16 @@ class QrLogin:
 
         logger.info('二维码登录成功')
 
+    def _show_qr_code_cmd(self):
+        barcode_url = ''
+        barcodes = decode(Image.open(self.qrcode_img_file))
+        for barcode in barcodes:
+            barcode_url = barcode.data.decode("utf-8")
+        print(barcode_url)
+        qr = qrcode.QRCode()
+        qr.add_data(barcode_url)
+        #invert=True白底黑块,有些app不识别黑底白块.
+        qr.print_ascii(invert=True)
 
 class JdTdudfp:
     def __init__(self, sp: SpiderSession):
